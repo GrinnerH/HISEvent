@@ -1,0 +1,23 @@
+====================================================
+block:  20
+12:07:13
+stable_indices:  [30, 42, 46, 56, 58, 60, 75, 79, 81, 83, 88]
+stable_SEs:  [9.668349545082016, 9.673039574890412, 9.67340907805342, 9.672801481096746, 9.672733873095158, 9.672497235263497, 9.675763050120066, 9.67565704583992, 9.675766830927712, 9.675714073701082, 9.675275943998571]
+First stable point: k =  31 , correspoding 1dSE:  9.668349545082016
+Global stable point within the searching range: k =  31 , correspoding 1dSE:  9.668349545082016
+stable points stored.
+stable points loaded.
+
+=========Iteration  1 =========
+        Subgraph  1
+        Subgraph  2
+        Subgraph  3
+
+=========Iteration  1 =========
+        Subgraph  1
+12:08:59
+n_clusters gt:  34
+n_clusters pred:  18
+nmi:  0.8285019354635319
+ami:  0.8085487306305225
+ari:  0.6861832233671993
