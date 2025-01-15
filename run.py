@@ -84,9 +84,53 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
         print('nmi: ', nmi)
         print('ami: ', ami)
         print('ari: ', ari)
-        
+
+        # 创建一个 DataFrame
+        division_df = pd.DataFrame([(node, cluster) for cluster, nodes in division.items() for node in nodes],
+                        columns=['node', 'cluster'])
+
+        # 将 DataFrame 保存为 CSV 文件
+        division_df.to_csv(f'{save_path}/clustering_results.csv', index=False)
+
+        import networkx as nx
+        import matplotlib.pyplot as plt
+        # # 保存 global_edges 和 stable_points 到 JSON 文件
+        # save_data_json(global_edges, stable_points, save_path)
+        # 输出错误聚类的数据
+        wrong_clustered_data = []
+        for true_label, pred_label in zip(labels_true, prediction):
+            if true_label!= pred_label:
+                wrong_clustered_data.append(df.iloc[pred_label])
+
+        # 创建一个图对象
+        G = nx.Graph()
+
+        # 添加边到图中
+        G.add_edges_from(global_edges)
+
+        # 打印图的节点和边
+        print("Nodes in the graph:", G.nodes())
+        print("Edges in the graph:", G.edges())
+
+        # 可视化图
+        nx.draw(G, with_labels=True)
+        plt.show()
+        plt.savefig(f"{save_path}/graph.png")
+
+        # 将错误聚类的数据保存到文件
+        wrong_clustered_data_df = pd.DataFrame(wrong_clustered_data)
+        wrong_clustered_data_df['prediction'] = prediction  # 添加 prediction 列
+        wrong_clustered_data_df.to_csv(f'{save_path}/wrong_clustered_data.csv', index=False)
+
     return
 
+import json
+# 保存 global_edges 和 stable_points 到 JSON 文件
+def save_data_json(global_edges, stable_points, save_path):
+    with open(f'{save_path}/global_edges.json', 'w') as f:
+        json.dump(global_edges, f)
+    with open(f'{save_path}/stable_points.json', 'w') as f:
+        json.dump(stable_points, f)
 def run_hier_2D_SE_mini_Event2012_closed_set(n = 300, e_a = True, e_s = True):
     save_path = './data/Event2012/closed_set/'
 
