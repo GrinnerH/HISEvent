@@ -55,7 +55,9 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
             for u, um, hs, e in \
             zip(df['user_id'], df['user_mentions'],  df['hashtags'], df['entities'])]
         
+        #找到该block下的局部稳定点和全局稳定点
         stable_points = get_stable_point(folder)
+        print('stable_points: ', stable_points)
         if e_a == False: # only rely on e_s (semantic-similarity-based edges)
             default_num_neighbors = stable_points['global']
         else:
@@ -85,44 +87,64 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
         print('ami: ', ami)
         print('ari: ', ari)
 
-        # 创建一个 DataFrame
-        division_df = pd.DataFrame([(node, cluster) for cluster, nodes in division.items() for node in nodes],
-                        columns=['node', 'cluster'])
+        print(division)
+        # 保存 division 到 CSV 文件
+        division_csv_file = f"{folder}/{block}_division.csv"
+        save_division_to_csv(division, division_csv_file)
 
-        # 将 DataFrame 保存为 CSV 文件
-        division_df.to_csv(f'{save_path}/clustering_results.csv', index=False)
-
-        import networkx as nx
-        import matplotlib.pyplot as plt
-        # # 保存 global_edges 和 stable_points 到 JSON 文件
-        # save_data_json(global_edges, stable_points, save_path)
+        df.to_csv(f'{folder}/{block}_all_clustered_data.csv', index=False)
         # 输出错误聚类的数据
-        wrong_clustered_data = []
-        for true_label, pred_label in zip(labels_true, prediction):
-            if true_label!= pred_label:
-                wrong_clustered_data.append(df.iloc[pred_label])
+        # wrong_clustered_data = []
+        # seen_data_points = set()  # 使用集合来跟踪已经添加的数据点
 
-        # 创建一个图对象
-        G = nx.Graph()
+        # for true_label, pred_label in zip(labels_true, prediction):
+        #     if true_label!= pred_label:
+        #         data_point = df.iloc[pred_label]
+        #         # 将数据点转换为元组，并将所有列表转换为元组以确保可哈希性
+        #         data_point_tuple = tuple(tuple(item) if isinstance(item, list) else item for item in data_point)
+        #         if data_point_tuple not in seen_data_points:
+        #             wrong_clustered_data.append(data_point)
+        #             seen_data_points.add(data_point_tuple)
+        
+        # # 将错误聚类的数据保存到文件
+        # wrong_clustered_data_df = pd.DataFrame(wrong_clustered_data)
+        # wrong_clustered_data_df['prediction'] = prediction  # 添加 prediction 列
+        # wrong_clustered_data_df.to_csv(f'{folder}/{block}_wrong_clustered_data.csv', index=False)
 
-        # 添加边到图中
-        G.add_edges_from(global_edges)
+           # import networkx as nx
+        # import matplotlib.pyplot as plt
+        # # # 保存 global_edges 和 stable_points 到 JSON 文件
+        # # save_data_json(global_edges, stable_points, folder)
 
-        # 打印图的节点和边
-        print("Nodes in the graph:", G.nodes())
-        print("Edges in the graph:", G.edges())
+        # # 创建一个图对象
+        # G = nx.Graph()
+        # # 添加边到图中
+        # G.add_edges_from(global_edges)
+        # # 打印图的节点和边
+        # print("Nodes in the graph:", G.nodes())
+        # print("Edges in the graph:", G.edges())
 
-        # 可视化图
-        nx.draw(G, with_labels=True)
-        plt.show()
-        plt.savefig(f"{save_path}/graph.png")
-
-        # 将错误聚类的数据保存到文件
-        wrong_clustered_data_df = pd.DataFrame(wrong_clustered_data)
-        wrong_clustered_data_df['prediction'] = prediction  # 添加 prediction 列
-        wrong_clustered_data_df.to_csv(f'{save_path}/wrong_clustered_data.csv', index=False)
+        # # 可视化图
+        # nx.draw(G, with_labels=True)
+        # plt.savefig(f"{folder}/graph.png")
+        # plt.show()  
 
     return
+
+import csv
+def save_division_to_csv(division, filename='division.csv'):
+    # Flatten the division list
+    rows = []
+    for cluster_id, cluster in enumerate(division):
+        for node in cluster:
+            rows.append([node, cluster_id])  # Store node and its corresponding cluster id
+    
+    # Create a DataFrame
+    df = pd.DataFrame(rows, columns=['Node', 'Cluster_ID'])
+    
+    # Save to CSV
+    df.to_csv(filename, index=False)
+    print(f'Division saved to {filename}')
 
 import json
 # 保存 global_edges 和 stable_points 到 JSON 文件
