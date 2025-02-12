@@ -55,6 +55,8 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
             for u, um, hs, e in \
             zip(df['user_id'], df['user_mentions'],  df['hashtags'], df['entities'])]
         
+        print('all_node_features: ', all_node_features)
+        
         #找到该block下的局部稳定点和全局稳定点
         stable_points = get_stable_point(folder)
         print('stable_points: ', stable_points)
@@ -66,11 +68,15 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
             default_num_neighbors = math.ceil((len(embeddings)/1000)*10)
         
         global_edges = get_global_edges(all_node_features, embeddings, default_num_neighbors, e_a = e_a, e_s = e_s)
+        # print('global_edges: ', global_edges)
 
         corr_matrix = np.corrcoef(embeddings)
         np.fill_diagonal(corr_matrix, 0)
+        print('corr_matrix: ', corr_matrix)
         weighted_global_edges = [(edge[0], edge[1], corr_matrix[edge[0]-1, edge[1]-1]) for edge in global_edges \
             if corr_matrix[edge[0]-1, edge[1]-1] > 0] # node encoding starts from 1
+        
+        # print('weighted_global_edges: ', weighted_global_edges)
         
         division = hier_2D_SE_mini(weighted_global_edges, len(embeddings), n = n)
         print(datetime.now().strftime("%H:%M:%S"))
@@ -87,12 +93,14 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
         print('ami: ', ami)
         print('ari: ', ari)
 
-        print(division)
+        print('division: ', division)
         # 保存 division 到 CSV 文件
         division_csv_file = f"{folder}/{block}_division.csv"
         save_division_to_csv(division, division_csv_file)
 
         df.to_csv(f'{folder}/{block}_all_clustered_data.csv', index=False)
+        
+        
         # 输出错误聚类的数据
         # wrong_clustered_data = []
         # seen_data_points = set()  # 使用集合来跟踪已经添加的数据点
@@ -299,12 +307,19 @@ def run_hier_2D_SE_mini_Event2018_closed_set(n = 800, e_a = True, e_s = True):
     print('nmi: ', nmi)
     print('ami: ', ami)
     print('ari: ', ari)
+    # 找出分类错误的推文索引
+    misclassified_indices = [i for i, (true_label, pred_label) in enumerate(zip(labels_true, prediction)) if true_label != pred_label]
+    # 输出分类错误的推文
+    misclassified_tweets = test_df.iloc[misclassified_indices]
+    print("Misclassified tweets:")
+    print(misclassified_tweets)
+    
     return
 
 if __name__ == "__main__":
     # to run all message blocks, set test_with_one_block to False
-    run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test_with_one_block = True)
+    # run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test_with_one_block = True)
     #run_hier_2D_SE_mini_Event2012_closed_set(n = 300, e_a = True, e_s = True)
     #run_hier_2D_SE_mini_Event2018_open_set(n = 300, e_a = True, e_s = True, test_with_one_block = True)
-    #run_hier_2D_SE_mini_Event2018_closed_set(n = 800, e_a = True, e_s = True)
+    run_hier_2D_SE_mini_Event2018_closed_set(n = 800, e_a = True, e_s = True)
     

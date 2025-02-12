@@ -3,6 +3,7 @@ from SE import SE
 from itertools import combinations, chain
 import numpy as np
 
+# 算法1
 def search_stable_points(embeddings, max_num_neighbors = 200):
     corr_matrix = np.corrcoef(embeddings)
     np.fill_diagonal(corr_matrix, 0)
@@ -95,6 +96,7 @@ def get_subgraphs_edges(clusters, graph_splits, weighted_global_edges):
         all_subgraphs_edges.append(subgraph_edges)
     return all_subgraphs_edges
 
+# 算法2
 def hier_2D_SE_mini(weighted_global_edges, n_messages, n = 100):
     '''
     hierarchical 2D SE minimization
