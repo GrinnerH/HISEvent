@@ -83,6 +83,19 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
 
         prediction = decode(division)
 
+         # 将 prediction 添加到 df 中
+        df['prediction'] = prediction
+        cols = df.columns.tolist()
+        event_id_index = cols.index('event_id')
+        cols.insert(event_id_index + 1, cols.pop(cols.index('prediction')))
+        df = df[cols]
+        # 按照 event_id 分组
+        groupby_event_id = df.groupby('prediction')
+        
+
+        # 合并分组后的数据
+        combined_df = pd.concat([group for _, group in groupby_event_id])
+
         labels_true = df['event_id'].tolist()
         n_clusters = len(list(set(labels_true)))
         print('n_clusters gt: ', n_clusters)
@@ -95,13 +108,13 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
 
         print('division: ', division)
         # 保存 division 到 CSV 文件
-        division_csv_file = f"{folder}/{block}_division.csv"
+        division_csv_file = f"{folder}/{block}_es-{e_s}_ea-{e_a}_division.csv"
         save_division_to_csv(division, division_csv_file)
 
-        df.to_csv(f'{folder}/{block}_all_clustered_data.csv', index=False)
+        combined_df.to_csv(f'{folder}/{block}_es-{e_s}_ea-{e_a}_all_clustered_data.csv', index=False)
         
         
-        # 输出错误聚类的数据
+        # #输出错误聚类的数据
         # wrong_clustered_data = []
         # seen_data_points = set()  # 使用集合来跟踪已经添加的数据点
 
@@ -117,6 +130,11 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
         # # 将错误聚类的数据保存到文件
         # wrong_clustered_data_df = pd.DataFrame(wrong_clustered_data)
         # wrong_clustered_data_df['prediction'] = prediction  # 添加 prediction 列
+        # cols = wrong_clustered_data_df.columns.tolist()
+        # event_id_index = cols.index('event_id')
+        # cols.insert(event_id_index + 1, cols.pop(cols.index('prediction')))
+        # wrong_clustered_data_df = wrong_clustered_data_df[cols]
+        # wrong_clustered_data_df = wrong_clustered_data_df.drop_duplicates()
         # wrong_clustered_data_df.to_csv(f'{folder}/{block}_wrong_clustered_data.csv', index=False)
 
            # import networkx as nx
@@ -161,6 +179,8 @@ def save_data_json(global_edges, stable_points, save_path):
         json.dump(global_edges, f)
     with open(f'{save_path}/stable_points.json', 'w') as f:
         json.dump(stable_points, f)
+
+
 def run_hier_2D_SE_mini_Event2012_closed_set(n = 300, e_a = True, e_s = True):
     save_path = './data/Event2012/closed_set/'
 
@@ -170,27 +190,37 @@ def run_hier_2D_SE_mini_Event2012_closed_set(n = 300, e_a = True, e_s = True):
     test_df = pd.DataFrame(data=test_df_np, columns=["event_id", "tweet_id", "text", "user_id", "created_at", "user_loc",\
             "place_type", "place_full_name", "place_country_code", "hashtags", "user_mentions", "image_urls", "entities", 
             "words", "filtered_words", "sampled_words"])
-    print("Dataframe loaded.")
+    print("test_df：",test_df)
+    # 从测试集 DataFrame test_df 中提取节点特征,输出节点特征列表 all_node_features
     all_node_features = [[str(u)] + \
         [str(each) for each in um] + \
         [h.lower() for h in hs] + \
         e \
         for u, um, hs, e in \
         zip(test_df['user_id'], test_df['user_mentions'],  test_df['hashtags'], test_df['entities'])]
+    print('all_node_features: ', all_node_features)
 
     # load embeddings of the test set messages
     with open(f'{save_path}/SBERT_embeddings.pkl', 'rb') as f:
         embeddings = pickle.load(f)
 
+    # 获取稳定点，并确定默认邻居数量
     stable_points = get_stable_point(save_path)
+    print('stable_points: ', stable_points)
     default_num_neighbors = stable_points['first']
 
     global_edges = get_global_edges(all_node_features, embeddings, default_num_neighbors, e_a = e_a, e_s = e_s)
+    # corrcoef()函数计算皮尔逊相关系数
     corr_matrix = np.corrcoef(embeddings)
+    print('corr_matrix: ', corr_matrix)
+    # 将对角线元素设置为0
     np.fill_diagonal(corr_matrix, 0)
+    # 仅保留相关系数大于0的边
+    # 根据相关系数矩阵筛选出相关系数大于 0 的边，并将这些边的起始节点、结束节点和相关系数组成一个三元组，最终生成一个包含带权重边的列表 
     weighted_global_edges = [(edge[0], edge[1], corr_matrix[edge[0]-1, edge[1]-1]) for edge in global_edges \
         if corr_matrix[edge[0]-1, edge[1]-1] > 0] # node encoding starts from 1
-
+    
+    # 使用加权边进行层次聚类
     division = hier_2D_SE_mini(weighted_global_edges, len(embeddings), n = n)
     prediction = decode(division)
 
@@ -307,19 +337,12 @@ def run_hier_2D_SE_mini_Event2018_closed_set(n = 800, e_a = True, e_s = True):
     print('nmi: ', nmi)
     print('ami: ', ami)
     print('ari: ', ari)
-    # 找出分类错误的推文索引
-    misclassified_indices = [i for i, (true_label, pred_label) in enumerate(zip(labels_true, prediction)) if true_label != pred_label]
-    # 输出分类错误的推文
-    misclassified_tweets = test_df.iloc[misclassified_indices]
-    print("Misclassified tweets:")
-    print(misclassified_tweets)
-    
     return
 
 if __name__ == "__main__":
     # to run all message blocks, set test_with_one_block to False
-    # run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test_with_one_block = True)
-    #run_hier_2D_SE_mini_Event2012_closed_set(n = 300, e_a = True, e_s = True)
+    run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test_with_one_block = True)
+    # run_hier_2D_SE_mini_Event2012_closed_set(n = 300, e_a = True, e_s = True)
     #run_hier_2D_SE_mini_Event2018_open_set(n = 300, e_a = True, e_s = True, test_with_one_block = True)
-    run_hier_2D_SE_mini_Event2018_closed_set(n = 800, e_a = True, e_s = True)
+    # run_hier_2D_SE_mini_Event2018_closed_set(n = 800, e_a = True, e_s = True)
     

@@ -2,6 +2,7 @@ import networkx as nx
 from networkx.algorithms import cuts
 import math
 from itertools import chain
+import matplotlib.pyplot as plt
 
 class SE:
     def __init__(self, graph: nx.Graph):
@@ -108,19 +109,27 @@ class SE:
         then store them into self.struc_data
         '''
         self.struc_data = {} # {comm1: [vol1, cut1, community_node_SE, leaf_nodes_SE], comm2:[vol2, cut2, community_node_SE, leaf_nodes_SE]，... }
+        # 遍历每一个社区
         for vname in self.division.keys():
             comm = self.division[vname]
+            # 计算该社区的体积，体积通常是社区内所有节点的度之和
             volume = self.get_volume(comm)
+            # 计算该社区的割边值，割边值是社区内部节点与外部节点之间的边的权重之和
             cut = self.get_cut(comm)
             if volume == 0:
                 vSE = 0
             else:
                 vSE = - (cut / self.vol) * math.log2(volume / self.vol)
+            
+            # 初始化叶节点结构熵为 0
             vnodeSE = 0
             for node in comm:
+                # 获取节点的度，考虑边的权重
                 d = self.graph.degree(node, weight = 'weight')
                 if d != 0:
+                    # 如果节点度不为 0，根据公式更新叶节点结构熵
                     vnodeSE -= (d / self.vol) * math.log2(d / volume)
+            # 将计算得到的体积、割边值、社区模式结构熵和叶节点结构熵存储到 self.struc_data 字典中
             self.struc_data[vname] = [volume, cut, vSE, vnodeSE]
 
     def update_struc_data_2d(self):
@@ -177,6 +186,7 @@ class SE:
         '''
         greedily update the encoding tree to minimize 2D SE
         '''
+        # 用于计算合并两个社区所引起的结构熵变化。
         def Mg_operator(v1, v2):
             '''
             MERGE operator. It calculates the delta SE caused by mergeing communities v1 and v2, 
@@ -198,6 +208,7 @@ class SE:
 
         # continue merging any two communities that can cause the largest decrease in SE, 
         # until the SE can't be further reduced
+        # 进入一个无限循环，直到无法再通过合并社区降低结构熵为止
         while True: 
             comm_num = len(self.division)
             delta_SE = 99999
