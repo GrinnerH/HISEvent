@@ -55,7 +55,7 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
             for u, um, hs, e in \
             zip(df['user_id'], df['user_mentions'],  df['hashtags'], df['entities'])]
         
-        print('all_node_features: ', all_node_features)
+        # print('all_node_features: ', all_node_features)
         
         #找到该block下的局部稳定点和全局稳定点
         stable_points = get_stable_point(folder)
@@ -66,13 +66,18 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
             default_num_neighbors = stable_points['first']
         if default_num_neighbors == 0: 
             default_num_neighbors = math.ceil((len(embeddings)/1000)*10)
-        
+        '''
+        1.获取e_a边：保存所有含有公共属性的节点，两两组会的边
+        2.获取e_s边：保存了每个节点距离最近的所有边、第 2 近的所有边，一直到第 default_num_neighbors 近的所有边
+        '''
         global_edges = get_global_edges(all_node_features, embeddings, default_num_neighbors, e_a = e_a, e_s = e_s)
         # print('global_edges: ', global_edges)
 
         corr_matrix = np.corrcoef(embeddings)
         np.fill_diagonal(corr_matrix, 0)
-        print('corr_matrix: ', corr_matrix)
+        # print('corr_matrix: ', corr_matrix)
+
+        # 添加权重(如果权重大于0)到全局边
         weighted_global_edges = [(edge[0], edge[1], corr_matrix[edge[0]-1, edge[1]-1]) for edge in global_edges \
             if corr_matrix[edge[0]-1, edge[1]-1] > 0] # node encoding starts from 1
         
@@ -106,7 +111,7 @@ def run_hier_2D_SE_mini_Event2012_open_set(n = 400, e_a = True, e_s = True, test
         print('ami: ', ami)
         print('ari: ', ari)
 
-        print('division: ', division)
+        # print('division: ', division)
         # 保存 division 到 CSV 文件
         division_csv_file = f"{folder}/{block}_es-{e_s}_ea-{e_a}_division.csv"
         save_division_to_csv(division, division_csv_file)

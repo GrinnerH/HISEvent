@@ -5,25 +5,35 @@ import numpy as np
 
 # 算法1
 def search_stable_points(embeddings, max_num_neighbors = 200):
+    # 计算嵌入数据中各样本之间的相关系数矩阵。相关系数矩阵反映了样本之间的线性相关性
     corr_matrix = np.corrcoef(embeddings)
+    # 将相关系数矩阵的对角线元素置为 0，因为样本自身与自身的相关性对后续分析没有意义
     np.fill_diagonal(corr_matrix, 0)
+    # 对相关系数矩阵的每一行进行排序，并返回排序后的索引。这些索引用于后续确定每个样本的近邻
     corr_matrix_sorted_indices = np.argsort(corr_matrix)
     
     all_1dSEs = []
     seg = None
+    '''
+    在每次循环中，knn_edges 表示的是每个样本与其第 i+1 个近邻之间的边，且只保留相关系数大于 0 的边
+    '''
     for i in range(max_num_neighbors):
         dst_ids = corr_matrix_sorted_indices[:, -(i+1)]
+        # 构建边列表，只保留相关系数大于 0 的边
         knn_edges = [(s+1, d+1, corr_matrix[s, d]) \
             for s, d in enumerate(dst_ids) if corr_matrix[s, d] > 0] # (s+1, d+1): +1 as node indexing starts from 1 instead of 0
+        # 第一轮循环，进行初始化
         if i == 0:
             g = nx.Graph()
+            # 将边列表添加到图中
             g.add_weighted_edges_from(knn_edges)
             seg = SE(g)
+            # 计算并存储当前图的 1D 结构熵
             all_1dSEs.append(seg.calc_1dSE())
         else:
             all_1dSEs.append(seg.update_1dSE(all_1dSEs[-1], knn_edges))
     
-    #print('all_1dSEs: ', all_1dSEs)
+    print('all_1dSEs: ', all_1dSEs)
     stable_indices = []
     for i in range(1, len(all_1dSEs) - 1):
         if all_1dSEs[i] < all_1dSEs[i - 1] and all_1dSEs[i] < all_1dSEs[i + 1]:
@@ -32,7 +42,12 @@ def search_stable_points(embeddings, max_num_neighbors = 200):
         print('No stable points found after checking k = 1 to ', max_num_neighbors)
         return 0, 0
     else:
+        # 提取稳定点对应的 1D 结构熵
         stable_SEs = [all_1dSEs[index] for index in stable_indices]
+        # 找到 stable_SEs 中的最小值对应的索引，这个索引对应的稳定点就是全局稳定点
+        '''
+        最小索引的稳定点，对应这每个样本取的最佳近邻数
+        '''
         index = stable_indices[stable_SEs.index(min(stable_SEs))]
         print('stable_indices: ', stable_indices)
         print('stable_SEs: ', stable_SEs)
@@ -52,6 +67,7 @@ def get_graph_edges(attributes):
 
     for attr in attr_nodes_dict.keys():
         attr_nodes_dict[attr].sort()
+    print('attr_nodes_dict: ', attr_nodes_dict)
 
     graph_edges = []
     for l in attr_nodes_dict.values():
@@ -73,8 +89,13 @@ def get_global_edges(attributes, embeddings, default_num_neighbors, e_a = True, 
     graph_edges, knn_edges = [], []
     if e_a == True:
         graph_edges = get_graph_edges(attributes)
+        # print('graph_edges: ', graph_edges)
     if e_s == True:
+        '''
+        保存了每个节点距离最近的所有边、第 2 近的所有边，一直到第 default_num_neighbors 近的所有边
+        '''
         knn_edges = get_knn_edges(embeddings, default_num_neighbors)
+        # print('knn_edges: ', knn_edges)
     return list(set(knn_edges + graph_edges))
 
 def get_subgraphs_edges(clusters, graph_splits, weighted_global_edges):
