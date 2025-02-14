@@ -67,7 +67,7 @@ def get_graph_edges(attributes):
 
     for attr in attr_nodes_dict.keys():
         attr_nodes_dict[attr].sort()
-    print('attr_nodes_dict: ', attr_nodes_dict)
+    # print('attr_nodes_dict: ', attr_nodes_dict)
 
     graph_edges = []
     for l in attr_nodes_dict.values():
@@ -148,10 +148,12 @@ def hier_2D_SE_mini(weighted_global_edges, n_messages, n = 100):
         # 将当前的聚类集合划分为多个小子集，每个子集的大小是min(s+n, n_clusters)，最多为n。
         # graph_splits是一个列表，每个元素是一个元组[s, e)，表示一个子集的起始索引和结束索引（不包含e）
         graph_splits = [(s, min(s+n, n_clusters)) for s in range(0, n_clusters, n)] # [s, e)
-        
+        #graph_splits:  [(0, 400), (400, 800), (800, 893)]
+
         # 根据划分的子集和全局加权边列表，获取每个子图的边列表。
         # 这时应该存一些边的两个端点都不在同一个子图中。
         all_subgraphs_edges = get_subgraphs_edges(clusters, graph_splits, weighted_global_edges)
+        # print('all_subgraphs_edges: ', all_subgraphs_edges)
         # 保存当前的聚类结果，用于后续检查聚类是否收敛
         last_clusters = clusters
         clusters = []
